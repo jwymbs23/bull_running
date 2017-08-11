@@ -5,34 +5,52 @@ import matplotlib.animation as animation
 
 #https://jakevdp.github.io/blog/2012/08/18/matplotlib-animation-tutorial/
 
-nparticles = 10
+nparticles = 250
 
-np.random.seed(0)
+np.random.seed(127)
 config = np.random.random_sample((nparticles,2))
-orient = np.random.random_sample((nparticles,))
+angle = np.random.random_sample((nparticles,))*2*np.pi
+#angle = np.asarray([np.pi/4, np.pi - np.pi/4])
+#print(np.mean(angle))
+orient = np.asarray((np.cos(angle),np.sin(angle))).T
+#print(angle, orient)
+#print(np.sum(orient/np.sqrt(np.sum(orient*orient)),axis = 1))
 speed = 0.01
+box_bound = 1
+dist_cut = 0.1
+dist_cut_squared = dist_cut*dist_cut
+noise = 0.4
 
+def translate():
+    global orient,config
+    config = np.modf(config + speed*orient + 2)[0]
+    return
 
-def orient_to_vec(orient):
-    angle = orient*np.pi*2
-    vec = np.asarray((np.cos(angle),np.sin(angle))).T
-    return vec
-
-
-def translate(orient,config):
-    config = np.modf(config + speed*orient_to_vec(orient)+2)[0]
-    return config
-
-def rotate(orient,config):
+def rotate():
+    global orient,config
+    neighbor_angle_av = orient
     for i in range(0,nparticles-1):
-        neighbor_angle_av = orient[i]
         for j in range(i+1,nparticles):
             sep_vec = (config[i] - config[j])
-            print(sep_vec)
-            #if(sep_vec[0]*sep_vec[0] + sep_vec[1]*sep_vec[1] < dist_cut_squared):
-             #   neighbor_angle_av += angle[j]
-    orient = orient
-    return orient
+            sep_vec = sep_vec - np.rint(sep_vec / box_bound)*box_bound
+            if(np.sum(sep_vec*sep_vec) < dist_cut_squared):
+                neighbor_angle_av[i] +=  orient[j]
+                neighbor_angle_av[j] +=  orient[i]
+    neighbor_angle_av /= np.sqrt(np.sum(neighbor_angle_av*neighbor_angle_av,axis=1))[:,None]
+    return neighbor_angle_av #+ np.asarray((np.cos(noise_term),np.sin(noise_term))).T
+
+
+def add_noise():
+    global orient
+    noise_term = noise*(np.random.random_sample((nparticles,))-0.5)*2*np.pi
+    sine = np.sin(noise_term)
+    cosine = np.cos(noise_term)
+    xarray = orient[0:,0]
+    yarray = orient[0:,1]
+    return np.asarray((xarray*cosine - yarray*sine, xarray*sine + yarray*cosine)).T
+#    angle_shift = np.arctan2(orient[0:,1], orient[0:,0]) +noise_term
+    #    print('after',np.asarray((np.cos(angle_shift),np.sin(angle_shift))).T, angle_shift)
+#    return np.asarray((np.cos(angle_shift),np.sin(angle_shift))).T
 
 
 
@@ -47,7 +65,7 @@ ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
 particles, = ax.plot([], [], 'bo', ms=1)
 
 # rect is the box edge
-bounds = [0,1,0,1]
+bounds = [0,box_bound,0,box_bound]
 rect = plt.Rectangle(bounds[::2],
                      bounds[1] - bounds[0],
                      bounds[3] - bounds[2],
@@ -64,9 +82,11 @@ def init():
 def animate(i):
     """perform animation step"""
     global rect, dt, ax, fig, config, orient
-
-    config = translate(orient,config)
-    orient = rotate(orient,config)
+    
+    translate()
+    orient = rotate()
+    orient = add_noise()
+    
     ms = int(fig.dpi * 2 * 0.01 * fig.get_figwidth()
              / np.diff(ax.get_xbound())[0])
     
@@ -76,8 +96,8 @@ def animate(i):
     particles.set_markersize(ms)
     return particles, rect
 
-ani = animation.FuncAnimation(fig, animate, frames=600,
-                              interval=10, blit=True, init_func=init)
+ani = animation.FuncAnimation(fig, animate, frames=500,
+                              interval = 20, blit=True, init_func=init)
 
 
 # save the animation as an mp4.  This requires ffmpeg or mencoder to be
@@ -85,6 +105,11 @@ ani = animation.FuncAnimation(fig, animate, frames=600,
 # the video can be embedded in html5.  You may need to adjust this for
 # your system: for more information, see
 # http://matplotlib.sourceforge.net/api/animation_api.html
-#ani.save('particle_boxmp4', fps=30, extra_args=['-vcodec', 'libx264'])
+#Writer = animation.writers['ffmpeg']
+#writer=animation.FFMpegWriter(bitrate=500)
 
-plt.show()
+#writer = Writer(fps=30, metadata=dict(artist='jhard'), bitrate=100)
+#ani.save('vicsek.gif', writer='imagemagick', fps=30)
+ani.save('vicsek.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+
+#plt.show()
