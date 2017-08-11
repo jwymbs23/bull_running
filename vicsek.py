@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+#https://jakevdp.github.io/blog/2012/08/18/matplotlib-animation-tutorial/
 
 nparticles = 10
 
