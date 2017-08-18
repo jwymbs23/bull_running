@@ -2,10 +2,13 @@ import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.colors as colors
+import matplotlib.cm as cm
+
 
 #https://jakevdp.github.io/blog/2012/08/18/matplotlib-animation-tutorial/
 
-nparticles = 250
+nparticles = 100
 
 np.random.seed(127)
 config = np.random.random_sample((nparticles,2))
@@ -15,11 +18,11 @@ angle = np.random.random_sample((nparticles,))*2*np.pi
 orient = np.asarray((np.cos(angle),np.sin(angle))).T
 #print(angle, orient)
 #print(np.sum(orient/np.sqrt(np.sum(orient*orient)),axis = 1))
-speed = 0.01
+speed = 0.05
 box_bound = 1
 dist_cut = 0.1
 dist_cut_squared = dist_cut*dist_cut
-noise = 0.4
+noise = 0.2*np.random.random_sample((nparticles,))
 
 def translate():
     global orient,config
@@ -36,7 +39,10 @@ def rotate():
             if(np.sum(sep_vec*sep_vec) < dist_cut_squared):
                 neighbor_angle_av[i] +=  orient[j]
                 neighbor_angle_av[j] +=  orient[i]
+    #print(neighbor_angle_av)
     neighbor_angle_av /= np.sqrt(np.sum(neighbor_angle_av*neighbor_angle_av,axis=1))[:,None]
+    #print(neighbor_angle_av)
+    #sys.exit()
     return neighbor_angle_av #+ np.asarray((np.cos(noise_term),np.sin(noise_term))).T
 
 
@@ -62,7 +68,9 @@ ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
                      xlim=(-0.1,1.1), ylim=(-0.1, 1.1))
 
 # particles holds the locations of the particles
-particles, = ax.plot([], [], 'bo', ms=1)
+coolwarm = plt.get_cmap('coolwarm')
+print(coolwarm)
+particles, = ax.plot([], [], 'bo', ms=1)#, c=noise)#, cmap='coolwarm')
 
 # rect is the box edge
 bounds = [0,box_bound,0,box_bound]
@@ -81,7 +89,7 @@ def init():
 
 def animate(i):
     """perform animation step"""
-    global rect, dt, ax, fig, config, orient
+    global rect, dt, ax, fig, config, orient, noise
     
     translate()
     orient = rotate()
@@ -110,6 +118,6 @@ ani = animation.FuncAnimation(fig, animate, frames=500,
 
 #writer = Writer(fps=30, metadata=dict(artist='jhard'), bitrate=100)
 #ani.save('vicsek.gif', writer='imagemagick', fps=30)
-ani.save('vicsek.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+#ani.save('vicsek.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 
-#plt.show()
+plt.show()
