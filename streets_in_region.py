@@ -2,23 +2,24 @@ import numpy as np
 import sys, os
 import googlemaps
 from datetime import datetime
+from scipy.spatial import Voronoi, voronoi_plot_2d
 from matplotlib import pyplot as plt
 #address = "3000 Broadway, New York"
 address = sys.argv[1]
 
 #get lat lon from address:
-key_file=open('./key', 'r')
-gmaps = googlemaps.Client(key=key_file.readline().strip('\n'))
-geocode_result = gmaps.geocode(address)
-#print(geocode_result[0]['geometry'].get('location'))
-lat = geocode_result[0]['geometry'].get('location').get('lat')
-lng = geocode_result[0]['geometry'].get('location').get('lng')
+#key_file=open('./key', 'r')
+#gmaps = googlemaps.Client(key=key_file.readline().strip('\n'))
+#geocode_result = gmaps.geocode(address)
+
+#lat = geocode_result[0]['geometry'].get('location').get('lat')
+#lng = geocode_result[0]['geometry'].get('location').get('lng')
 lat = 40.6798988 
 lng = -73.9778685
 
 
-del_x = 0.007
-del_y = 0.007
+del_x = 0.005
+del_y = 0.005
 
 
 x_hi = lng + del_x*0.5
@@ -54,7 +55,7 @@ for ci,i in enumerate(raw_map_data):
         flag = 0
 #    if ci > 500:
 raw_map_data = []
-print(street_count)
+#print(street_count)
 
 IN = 0
 LEFT = 1
@@ -110,11 +111,10 @@ def CS_line_clip(segment):
                 c1 = CS_line_clip_code(seg[1])
     if accept:
         return seg
-    else:
-        return False
 
 
 lines_in_region = []
+plot_roads = []
 #iterate through streets
 for segment in segment_data:
     for i in range(len(segment) - 1):
@@ -122,12 +122,31 @@ for segment in segment_data:
         clipped_line = CS_line_clip([segment[i],segment[i+1]])
         if clipped_line:
             lines_in_region.append(clipped_line)
-print(lines_in_region)
+
+scaled = [line[0] for line in lines_in_region]
+
 
 a = np.asarray(lines_in_region)
-print(a)
-plt.plot(a[:,:,0].T,a[:,:,1].T)
-plt.show()
+a = (a - [[lng, lat],[lng,lat]])/(x_hi - x_lo) + 0.5
+scaled = (a.tolist())
+#from shapely.geometry import LineString
+#roads = []
+#for r in lines_in_region:
+#    print('r ', r)
+#    for s in r:
+#        ls = []
+#        print(s)
+#        for j in range(0,len(s)-1,2):
+#            ls.append([(s[j][0], s[j][1]),(s[j+1][0], s[j+1][1])])
+#            #print(ls)
+#        roads.append(LineString(ls[0]))
+#for i in roads:
+#    print(list(i.coords))
+#vor = Voronoi(midpoints)
+#print(a)
+#voronoi_plot_2d(vor)
+#plt.plot(a[:,:,0].T,a[:,:,1].T)
+#plt.show()
 
 
 
